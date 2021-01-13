@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace TournamentPlanner.Data
@@ -10,6 +9,16 @@ namespace TournamentPlanner.Data
 
     public class TournamentPlannerDbContext : DbContext
     {
+        public DbSet<Player> Players { get; set; }
+        public DbSet<Match> Matches { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        { 
+            base.OnModelCreating(modelBuilder); 
+            modelBuilder.Entity<Match>().HasOne(m => m.Player1).WithMany().HasForeignKey(m => m.Player1ID).OnDelete(DeleteBehavior.NoAction); 
+            modelBuilder.Entity<Match>().HasOne(m => m.Player2).WithMany().HasForeignKey(m => m.Player2ID).OnDelete(DeleteBehavior.NoAction); 
+            modelBuilder.Entity<Match>().HasOne(m => m.Winner).WithMany().HasForeignKey(m => m.WinnerID).OnDelete(DeleteBehavior.NoAction); }
+
         public TournamentPlannerDbContext(DbContextOptions<TournamentPlannerDbContext> options)
             : base(options)
         { }
@@ -22,9 +31,11 @@ namespace TournamentPlanner.Data
         /// </summary>
         /// <param name="newPlayer">Player to add</param>
         /// <returns>Player after it has been added to the DB</returns>
-        public Task<Player> AddPlayer(Player newPlayer)
+        public async Task<Player> AddPlayer(Player newPlayer)
         {
-            throw new NotImplementedException();
+            await Players.AddAsync(newPlayer);
+            await SaveChangesAsync();
+            return newPlayer;
         }
 
         /// <summary>
@@ -34,9 +45,19 @@ namespace TournamentPlanner.Data
         /// <param name="player2Id">ID of player 2</param>
         /// <param name="round">Number of the round</param>
         /// <returns>Generated match after it has been added to the DB</returns>
-        public Task<Match> AddMatch(int player1Id, int player2Id, int round)
+        public async Task<Match> AddMatch(int player1Id, int player2Id, int round)
         {
-            throw new NotImplementedException();
+            Match newMatch = new Match();
+            newMatch.Player1ID = player1Id;
+            newMatch.Player1 = Players.Find(player1Id);
+            newMatch.Player2ID = player2Id;
+            newMatch.Player2 = Players.Find(player2Id);
+            newMatch.Round = round;
+
+            await Matches.AddAsync(newMatch);
+
+            await SaveChangesAsync();
+            return newMatch;
         }
 
         /// <summary>
@@ -45,26 +66,52 @@ namespace TournamentPlanner.Data
         /// <param name="matchId">ID of the match to update</param>
         /// <param name="player">Player who has won the match</param>
         /// <returns>Match after it has been updated in the DB</returns>
-        public Task<Match> SetWinner(int matchId, PlayerNumber player)
+        public async Task<Match> SetWinner(int matchId, PlayerNumber player)
         {
-            throw new NotImplementedException();
+            Match match = Matches.Find(matchId);
+            if (player == PlayerNumber.Player1)
+            {
+                match.WinnerID = match.Player1ID;
+            }
+            else
+            {
+                match.WinnerID = match.Player2ID;
+            }
+            await SaveChangesAsync();
+
+            return match;
         }
 
         /// <summary>
         /// Get a list of all matches that do not have a winner yet
         /// </summary>
         /// <returns>List of all found matches</returns>
-        public Task<IList<Match>> GetIncompleteMatches()
+        public async Task<IList<Match>> GetIncompleteMatches()
         {
-            throw new NotImplementedException();
+            List<Match> incompleteMatches = new List<Match>();
+
+            foreach (var match in Matches)
+            {
+                if (match.Winner == null) incompleteMatches.Add(match);
+            }
+            await SaveChangesAsync();
+            return incompleteMatches;
         }
 
         /// <summary>
         /// Delete everything (matches, players)
         /// </summary>
-        public Task DeleteEverything()
+        public async Task DeleteEverything()
         {
-            throw new NotImplementedException();
+            foreach (var player in Players)
+            {
+                Players.Remove(player);
+            }
+            foreach (var match in Matches)
+            {
+                Matches.Remove(match);
+            }
+            await SaveChangesAsync();
         }
 
         /// <summary>

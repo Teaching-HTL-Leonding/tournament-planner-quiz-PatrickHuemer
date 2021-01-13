@@ -17,7 +17,7 @@ namespace TournamentPlannerTests
         private readonly WebApplicationFactory<Startup> webClientFactory;
         private readonly DbContextFactory contextFactory;
 
-        public WebApiBasicTests(WebApplicationFactory<Startup> webClientFactory, DbContextFactory contextFactory) => 
+        public WebApiBasicTests(WebApplicationFactory<Startup> webClientFactory, DbContextFactory contextFactory) =>
             (this.webClientFactory, this.contextFactory) = (webClientFactory, contextFactory);
 
         [Fact]
